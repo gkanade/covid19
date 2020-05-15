@@ -81,6 +81,9 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                 }
             }
 
+            for (int i = 0; i < 11; i++) {
+                dictFatalityDist["Ahmedabad"].Add(0);
+                    }
             foreach(string state in statesWithTopDist)
             {
                 var entry = o2["districtsDaily"][state];
@@ -92,7 +95,12 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                         {
                             continue;
                         }
-
+                        int numDays = entry[district].Count();
+                        for(int i = 0; i < numDays; i++)
+                        {
+                            var e = entry[district][i];
+                            dictFatalityDist[district].Add(int.Parse(e["deceased"].ToString()));
+                        }
                     }
                 }
 
@@ -139,6 +147,34 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
             }
 
             using (StreamWriter op = new StreamWriter("states_data_confirmed"+ DateTime.Now.ToString("yyyyMMddHHmmssfff")+".csv"))
+            {
+                foreach (string line in lines)
+                {
+                    op.WriteLine(line);
+                }
+                op.Flush();
+            }
+
+
+
+
+            lines = new List<string>();
+            foreach (string key in dictFatalityDist.Keys)
+            {
+                string line = "";
+                Console.Write(key + " ");
+                line = line + (key + ",");
+                foreach (int i in dictFatalityDist[key])
+                {
+                    Console.Write(i + ",");
+                    line = line + (i + ",");
+                }
+                Console.WriteLine();
+                //lines.Add("");
+                lines.Add(line);
+            }
+
+            using (StreamWriter op = new StreamWriter("districs_data_fatality" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
             {
                 foreach (string line in lines)
                 {
