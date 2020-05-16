@@ -35,8 +35,8 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
             "mh", "ml", "mn", "mp", "mz", "nl", "or", "pb",
             "py", "rj", "sk", "tg", "tn", "tr", "up", "ut", "wb"};
 
-            List<string> districts = new List<string> { "Ahmedabad", "Chennai", "Unknown", "Kolkata", "Mumbai", "Pune"};
-            List<string> statesWithTopDist = new List<string> { "Gujarat", "Tamil Nadu", "West Bengal", "Delhi", "Maharashtra" };
+            List<string> districts = new List<string> { "Ahmedabad", "Chennai", "Unknown", "Indore", "Jaipur", "Kolkata", "Mumbai", "Pune", "Thane"};
+            List<string> statesWithTopDist = new List<string> { "Gujarat", "Tamil Nadu", "West Bengal", "Delhi", "Madhya Pradesh", "Maharashtra", "Rajasthan" };
             foreach(string state in states)
             {
                 dictFatality.Add(state, new List<int>());
@@ -83,6 +83,7 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
 
             for (int i = 0; i < 11; i++) {
                 dictFatalityDist["Ahmedabad"].Add(0);
+                dictConfirmedDist["Ahmedabad"].Add(0);
                     }
             foreach(string state in statesWithTopDist)
             {
@@ -100,6 +101,7 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                         {
                             var e = entry[district][i];
                             dictFatalityDist[district].Add(int.Parse(e["deceased"].ToString()));
+                            dictConfirmedDist[district].Add(int.Parse(e["confirmed"].ToString()));
                         }
                     }
                 }
@@ -175,6 +177,31 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
             }
 
             using (StreamWriter op = new StreamWriter("districs_data_fatality" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
+            {
+                foreach (string line in lines)
+                {
+                    op.WriteLine(line);
+                }
+                op.Flush();
+            }
+
+            lines = new List<string>();
+            foreach (string key in dictConfirmedDist.Keys)
+            {
+                string line = "";
+                Console.Write(key + " ");
+                line = line + (key + ",");
+                foreach (int i in dictConfirmedDist[key])
+                {
+                    Console.Write(i + ",");
+                    line = line + (i + ",");
+                }
+                Console.WriteLine();
+                //lines.Add("");
+                lines.Add(line);
+            }
+
+            using (StreamWriter op = new StreamWriter("districs_data_confirmed" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
             {
                 foreach (string line in lines)
                 {
