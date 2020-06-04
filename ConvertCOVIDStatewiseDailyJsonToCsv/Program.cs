@@ -9,6 +9,42 @@ using System.Threading.Tasks;
 
 namespace ConvertCOVIDStatewiseDailyJsonToCsv
 {
+    class SimpleMovingAverage
+    {
+        // queue used to store list so that we get the average 
+        private Queue<Double> Dataset = new Queue<Double>();
+        private int period;
+        private double sum;
+
+        // constructor to initialize period 
+        public SimpleMovingAverage(int period)
+        {
+            this.period = period;
+        }
+
+        // function to add new data in the 
+        // list and update the sum so that 
+        // we get the new mean 
+        public void addData(double num)
+        {
+            sum += num;
+            Dataset.Enqueue(num);
+
+            // Updating size so that length 
+            // of data set should be equal 
+            // to period as a normal mean has 
+            if (Dataset.Count > period)
+            {
+                sum -= Dataset.Dequeue();
+            }
+        }
+
+        // function to calculate mean 
+        public double getMean()
+        {
+            return sum / period;
+        }
+    }
     class Program
     {
         static void Main(string[] args)
@@ -28,6 +64,8 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
             IDictionary<string, List<int>> dictConfirmed = new Dictionary<string, List<int>>();
             IDictionary<string, List<int>> dictFatalityDist = new Dictionary<string, List<int>>();
             IDictionary<string, List<int>> dictConfirmedDist = new Dictionary<string, List<int>>();
+            IDictionary<string, List<double>> dictWeeklyAvgNew = new Dictionary<string, List<double>>();
+            IDictionary<string, SimpleMovingAverage> dictSMA = new Dictionary<string, SimpleMovingAverage>();
 
             List<string> states = new List<string>{ "an", "ap", "ar", "as",
             "br", "ch", "ct", "dd", "dl", "dn", "ga", "gj",
@@ -41,6 +79,8 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
             {
                 dictFatality.Add(state, new List<int>());
                 dictConfirmed.Add(state, new List<int>());
+                dictWeeklyAvgNew.Add(state, new List<double>());
+                dictSMA.Add(state, new SimpleMovingAverage(7));
             }
 
             foreach (string district in districts)
@@ -58,11 +98,14 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                     foreach(string state in states)
                     {
                         int currentEntry = entry[state].ToString() == "" ? 0 : int.Parse(entry[state].ToString());
-                        if(dictFatality[state].Count() == 0)
+                        if (dictFatality[state].Count() == 0)
                         {
                             dictFatality[state].Add(currentEntry);
                         }
-                        dictFatality[state].Add(currentEntry + int.Parse(dictFatality[state].Last().ToString()));
+                        else
+                        {
+                            dictFatality[state].Add(currentEntry + int.Parse(dictFatality[state].Last().ToString()));
+                        }
                     }
                     
                 }
@@ -75,7 +118,13 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                         {
                             dictConfirmed[state].Add(currentEntry);
                         }
-                        dictConfirmed[state].Add(currentEntry + int.Parse(dictConfirmed[state].Last().ToString()));
+                        else
+                        {
+                            dictConfirmed[state].Add(currentEntry + int.Parse(dictConfirmed[state].Last().ToString()));
+                        }
+
+                        dictSMA[state].addData(currentEntry);
+                        dictWeeklyAvgNew[state].Add(dictSMA[state].getMean());
                     }
 
                 }
@@ -158,6 +207,30 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
             }
 
 
+            lines = new List<string>();
+            foreach (string key in dictWeeklyAvgNew.Keys)
+            {
+                string line = "";
+                Console.Write(key + " ");
+                line = line + (key + ",");
+                foreach (double i in dictWeeklyAvgNew[key])
+                {
+                    Console.Write(i + ",");
+                    line = line + (i + ",");
+                }
+                Console.WriteLine();
+                //lines.Add("");
+                lines.Add(line);
+            }
+
+            using (StreamWriter op = new StreamWriter("states_data_weekly_avg_new" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
+            {
+                foreach (string line in lines)
+                {
+                    op.WriteLine(line);
+                }
+                op.Flush();
+            }
 
 
             lines = new List<string>();
