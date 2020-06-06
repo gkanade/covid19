@@ -12,21 +12,25 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
     class Districts
     {
         static string sourceFile = "https://api.covid19india.org/districts_daily.json";
-        public static void ComputeDistrictsData()
+        static string rawJsonFile = "districts_daily.json";
+        static List<string> districts = new List<string> { "Ahmedabad", "Chennai", "Unknown", "Indore", "Jaipur", "Kolkata", "Mumbai", "Pune", "Thane" };
+        static List<string> statesWithTopDist = new List<string> { "Gujarat", "Tamil Nadu", "West Bengal", "Delhi", "Madhya Pradesh", "Maharashtra", "Rajasthan" };
+
+
+        Districts()
         {
             using (var client = new WebClient())
             {
-                client.DownloadFile(sourceFile, "districts_daily.json");
+                client.DownloadFile(sourceFile, rawJsonFile);
             }
-            JObject o2 = JObject.Parse(File.ReadAllText("districts_daily.json"));
+        }
+
+        public static void ComputeDistrictsData()
+        {            
+            JObject o2 = JObject.Parse(File.ReadAllText(rawJsonFile));
             IDictionary<string, List<int>> dictFatalityDist = new Dictionary<string, List<int>>();
             IDictionary<string, List<int>> dictConfirmedDist = new Dictionary<string, List<int>>();
-
-
-
-            List<string> districts = new List<string> { "Ahmedabad", "Chennai", "Unknown", "Indore", "Jaipur", "Kolkata", "Mumbai", "Pune", "Thane" };
-            List<string> statesWithTopDist = new List<string> { "Gujarat", "Tamil Nadu", "West Bengal", "Delhi", "Madhya Pradesh", "Maharashtra", "Rajasthan" };
-
+            
             foreach (string district in districts)
             {
                 dictFatalityDist.Add(district, new List<int>());
