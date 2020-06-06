@@ -31,6 +31,8 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
             IDictionary<string, List<int>> dictConfirmedDist = new Dictionary<string, List<int>>();
             IDictionary<string, List<double>> dictWeeklyAvgNew = new Dictionary<string, List<double>>();
             IDictionary<string, SimpleMovingAverage> dictSMA = new Dictionary<string, SimpleMovingAverage>();
+            IDictionary<string, List<double>> dictWeeklyAvgNewDeaths = new Dictionary<string, List<double>>();
+            IDictionary<string, SimpleMovingAverage> dictSMADeaths = new Dictionary<string, SimpleMovingAverage>();
 
             List<string> states = new List<string>{ "an", "ap", "ar", "as",
             "br", "ch", "ct", "dd", "dl", "dn", "ga", "gj",
@@ -46,6 +48,8 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                 dictConfirmed.Add(state, new List<int>());
                 dictWeeklyAvgNew.Add(state, new List<double>());
                 dictSMA.Add(state, new SimpleMovingAverage(7));
+                dictWeeklyAvgNewDeaths.Add(state, new List<double>());
+                dictSMADeaths.Add(state, new SimpleMovingAverage(7));
             }
 
             foreach (string district in districts)
@@ -71,6 +75,8 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                         {
                             dictFatality[state].Add(currentEntry + int.Parse(dictFatality[state].Last().ToString()));
                         }
+                        dictSMADeaths[state].addData(currentEntry);
+                        dictWeeklyAvgNewDeaths[state].Add(dictSMA[state].getMean());
                     }
                     
                 }
@@ -197,6 +203,30 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                 op.Flush();
             }
 
+            lines = new List<string>();
+            foreach (string key in dictWeeklyAvgNewDeaths.Keys)
+            {
+                string line = "";
+                Console.Write(key + " ");
+                line = line + (key + ",");
+                foreach (double i in dictWeeklyAvgNewDeaths[key])
+                {
+                    Console.Write(i + ",");
+                    line = line + (i + ",");
+                }
+                Console.WriteLine();
+                //lines.Add("");
+                lines.Add(line);
+            }
+
+            using (StreamWriter op = new StreamWriter("states_data_weekly_avg_new_deaths" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
+            {
+                foreach (string line in lines)
+                {
+                    op.WriteLine(line);
+                }
+                op.Flush();
+            }
 
             lines = new List<string>();
             foreach (string key in dictFatalityDist.Keys)
@@ -213,7 +243,10 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                 //lines.Add("");
                 lines.Add(line);
             }
+                
 
+
+            
             using (StreamWriter op = new StreamWriter("districs_data_fatality" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
             {
                 foreach (string line in lines)
