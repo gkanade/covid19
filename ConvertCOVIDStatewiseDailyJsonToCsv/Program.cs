@@ -6,13 +6,14 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using static ConvertCOVIDStatewiseDailyJsonToCsv.Constants;
 
 namespace ConvertCOVIDStatewiseDailyJsonToCsv
 {
     
     class Program
     {
-        
+    
 
         static void Main(string[] args)
         {
@@ -21,7 +22,8 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
         | SecurityProtocolType.Tls12
         | SecurityProtocolType.Ssl3;
 
-            Districts.ComputeDistrictsData();
+            Districts districts = new Districts();
+            districts.Scenario(Constants.allIndiaDistricts, Constants.statesWithTopDistricts);
             States.ComputeStatesData();
         
         }

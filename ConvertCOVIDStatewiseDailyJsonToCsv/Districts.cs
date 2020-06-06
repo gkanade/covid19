@@ -6,45 +6,54 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using static ConvertCOVIDStatewiseDailyJsonToCsv.Constants;
 
 namespace ConvertCOVIDStatewiseDailyJsonToCsv
 {
+    
     class Districts
     {
         static string sourceFile = "https://api.covid19india.org/districts_daily.json";
         static string rawJsonFile = "districts_daily.json";
-        static List<string> districts = new List<string> { "Ahmedabad", "Chennai", "Unknown", "Indore", "Jaipur", "Kolkata", "Mumbai", "Pune", "Thane" };
-        static List<string> statesWithTopDist = new List<string> { "Gujarat", "Tamil Nadu", "West Bengal", "Delhi", "Madhya Pradesh", "Maharashtra", "Rajasthan" };
+        static JObject rawJson;
+        protected static List<string> districts;
+        protected static List<string> states;
 
-
-        Districts()
+        protected static IDictionary<string, List<int>> dictFatality = new Dictionary<string, List<int>>();
+        protected static IDictionary<string, List<int>> dictConfirmed = new Dictionary<string, List<int>>();
+        
+        public Districts()
         {
             using (var client = new WebClient())
             {
                 client.DownloadFile(sourceFile, rawJsonFile);
             }
+
+            rawJson = JObject.Parse(File.ReadAllText(rawJsonFile));
+            
         }
 
-        public static void ComputeDistrictsData()
-        {            
-            JObject o2 = JObject.Parse(File.ReadAllText(rawJsonFile));
-            IDictionary<string, List<int>> dictFatalityDist = new Dictionary<string, List<int>>();
-            IDictionary<string, List<int>> dictConfirmedDist = new Dictionary<string, List<int>>();
-            
+        public void Scenario(List<string> dist, List<string> stat)
+        {
+            districts = dist;
+            states = stat;
+            ComputeStatistics();
+        }
+
+        void InitializeStats()
+        {
             foreach (string district in districts)
             {
-                dictFatalityDist.Add(district, new List<int>());
-                dictConfirmedDist.Add(district, new List<int>());
+                dictFatality.Add(district, new List<int>());
+                dictConfirmed.Add(district, new List<int>());
             }
+        }
 
-            for (int i = 0; i < 11; i++)
+        void ReadInStats()
+        {
+            foreach (string state in states)
             {
-                dictFatalityDist["Ahmedabad"].Add(0);
-                dictConfirmedDist["Ahmedabad"].Add(0);
-            }
-            foreach (string state in statesWithTopDist)
-            {
-                var entry = o2["districtsDaily"][state];
+                var entry = rawJson["districtsDaily"][state];
                 foreach (string district in districts)
                 {
                     if (entry[district] != null)
@@ -57,21 +66,27 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                         for (int i = 0; i < numDays; i++)
                         {
                             var e = entry[district][i];
-                            dictFatalityDist[district].Add(int.Parse(e["deceased"].ToString()));
-                            dictConfirmedDist[district].Add(int.Parse(e["confirmed"].ToString()));
+                            dictFatality[district].Add(int.Parse(e["deceased"].ToString()));
+                            dictConfirmed[district].Add(int.Parse(e["confirmed"].ToString()));
                         }
                     }
                 }
 
             }
+        }
 
+        private void WriteFiles(CaseType caseType)
+        {
             List<string> lines = new List<string>();
-            foreach (string key in dictFatalityDist.Keys)
+            Dictionary<string, List<int>> dict = caseType == CaseType.Confirmed ? 
+                (Dictionary<string, List<int>>)dictConfirmed : (Dictionary<string, List<int>>)dictFatality;
+            
+            foreach (string key in dict.Keys)
             {
                 string line = "";
                 Console.Write(key + " ");
                 line = line + (key + ",");
-                foreach (int i in dictFatalityDist[key])
+                foreach (int i in dict[key])
                 {
                     Console.Write(i + ",");
                     line = line + (i + ",");
@@ -81,10 +96,7 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                 lines.Add(line);
             }
 
-
-
-
-            using (StreamWriter op = new StreamWriter("districs_data_fatality" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
+            using (StreamWriter op = new StreamWriter("districs_data_" + caseType.ToString().ToLower() + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
             {
                 foreach (string line in lines)
                 {
@@ -93,32 +105,24 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                 op.Flush();
             }
 
-            lines = new List<string>();
-            foreach (string key in dictConfirmedDist.Keys)
+        }
+
+        void WriteFiles()
+        {
+            WriteFiles(CaseType.Confirmed);
+            WriteFiles(CaseType.Fatality);
+        }
+
+        void ComputeStatistics()
+        {
+            InitializeStats();
+            for (int i = 0; i < 11; i++)
             {
-                string line = "";
-                Console.Write(key + " ");
-                line = line + (key + ",");
-                foreach (int i in dictConfirmedDist[key])
-                {
-                    Console.Write(i + ",");
-                    line = line + (i + ",");
-                }
-                Console.WriteLine();
-                //lines.Add("");
-                lines.Add(line);
+                dictFatality["Ahmedabad"].Add(0);
+                dictConfirmed["Ahmedabad"].Add(0);
             }
-
-            using (StreamWriter op = new StreamWriter("districs_data_confirmed" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
-            {
-                foreach (string line in lines)
-                {
-                    op.WriteLine(line);
-                }
-                op.Flush();
-            }
-
-
+            ReadInStats();
+            WriteFiles();
         }
     }
 }
