@@ -41,5 +41,15 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
         {
             return sum / period;
         }
+
+        public int Count()
+        {
+            return Dataset.Count;
+        }
+
+        public int Last()
+        {
+            return (int)Dataset.Last();
+        }
     }
 }
