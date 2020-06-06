@@ -59,7 +59,7 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                             dictFatality[state].Add(currentEntry + int.Parse(dictFatality[state].Last().ToString()));
                         }
                         dictSMADeaths[state].addData(currentEntry);
-                        dictWeeklyAvgNewDeaths[state].Add(dictSMA[state].getMean());
+                        dictWeeklyAvgNewDeaths[state].Add(dictSMADeaths[state].getMean());
                     }
 
                 }

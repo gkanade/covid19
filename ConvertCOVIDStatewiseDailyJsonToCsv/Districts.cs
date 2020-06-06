@@ -13,14 +13,11 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
     
     class Districts
     {
-        static string sourceFile = "https://api.covid19india.org/districts_daily.json";
-        static string rawJsonFile = "districts_daily.json";
+        string sourceFile = "https://api.covid19india.org/districts_daily.json";
+        string rawJsonFile = "districts_daily.json";
         static JObject rawJson;
-        protected static List<string> districts;
-        protected static List<string> states;
+        
 
-        protected static IDictionary<string, List<int>> dictFatality = new Dictionary<string, List<int>>();
-        protected static IDictionary<string, List<int>> dictConfirmed = new Dictionary<string, List<int>>();
         
         public Districts()
         {
@@ -33,28 +30,37 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
             
         }
 
-        public void Scenario(List<string> dist, List<string> stat)
+        public void Scenario(DistrictsScenario scenario)
         {
-            districts = dist;
-            states = stat;
-            ComputeStatistics();
-        }
+            IDictionary<string, List<int>> dictFatality = new Dictionary<string, List<int>>();
+            IDictionary<string, List<int>> dictConfirmed = new Dictionary<string, List<int>>();
+            IDictionary<string, List<double>> dictWeeklyAvgNew = new Dictionary<string, List<double>>();
+            IDictionary<string, SimpleMovingAverage> dictSMA = new Dictionary<string, SimpleMovingAverage>();
+            IDictionary<string, List<double>> dictWeeklyAvgNewDeaths = new Dictionary<string, List<double>>();
+            IDictionary<string, SimpleMovingAverage> dictSMADeaths = new Dictionary<string, SimpleMovingAverage>();
 
-        void InitializeStats()
-        {
-            foreach (string district in districts)
+            foreach (string district in scenario.listDistricts)
             {
                 dictFatality.Add(district, new List<int>());
                 dictConfirmed.Add(district, new List<int>());
+                dictWeeklyAvgNew.Add(district, new List<double>());
+                dictSMA.Add(district, new SimpleMovingAverage(7));
+                dictWeeklyAvgNewDeaths.Add(district, new List<double>());
+                dictSMADeaths.Add(district, new SimpleMovingAverage(7));
             }
-        }
 
-        void ReadInStats()
-        {
-            foreach (string state in states)
+            if (scenario.listDistricts.Contains("Ahmedabad"))
+            {
+                for (int i = 0; i < 11; i++)
+                {
+                    dictFatality["Ahmedabad"].Add(0);
+                    dictConfirmed["Ahmedabad"].Add(0);
+                }
+            }
+            foreach (string state in scenario.listStates)
             {
                 var entry = rawJson["districtsDaily"][state];
-                foreach (string district in districts)
+                foreach (string district in scenario.listDistricts)
                 {
                     if (entry[district] != null)
                     {
@@ -68,18 +74,70 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                             var e = entry[district][i];
                             dictFatality[district].Add(int.Parse(e["deceased"].ToString()));
                             dictConfirmed[district].Add(int.Parse(e["confirmed"].ToString()));
+                            if (dictSMADeaths[district].Count() == 0)
+                            {
+                                dictSMADeaths[district].addData(int.Parse(e["deceased"].ToString()));
+                            } else
+                            {
+                                dictSMADeaths[district].addData(int.Parse(e["deceased"].ToString()) - dictSMADeaths[district].Last());
+                            }
+                            dictWeeklyAvgNewDeaths[district].Add(dictSMADeaths[district].getMean());
+                            if (dictSMA[district].Count() == 0)
+                            {
+                                dictSMA[district].addData(int.Parse(e["deceased"].ToString()));
+                            }
+                            else
+                            {
+                                dictSMA[district].addData(int.Parse(e["deceased"].ToString()) - dictSMA[district].Last());
+                            }
+                            
+                            dictWeeklyAvgNew[district].Add(dictSMA[district].getMean());
                         }
                     }
                 }
 
             }
+            WriteFiles(CaseType.Confirmed, scenario, dictConfirmed);
+            WriteFiles(CaseType.Fatality, scenario, dictFatality);
+            WriteFiles2(CaseType.Confirmed, scenario, dictWeeklyAvgNew);
+            WriteFiles2(CaseType.Fatality, scenario, dictWeeklyAvgNewDeaths);
         }
 
-        private void WriteFiles(CaseType caseType)
+        
+        private void WriteFiles2(CaseType caseType, DistrictsScenario scenario, IDictionary<string, List<double>> dict)
         {
             List<string> lines = new List<string>();
-            Dictionary<string, List<int>> dict = caseType == CaseType.Confirmed ? 
-                (Dictionary<string, List<int>>)dictConfirmed : (Dictionary<string, List<int>>)dictFatality;
+
+            foreach (string key in dict.Keys)
+            {
+                string line = "";
+                Console.Write(key + " ");
+                line = line + (key + ",");
+                foreach (int i in dict[key])
+                {
+                    Console.Write(i + ",");
+                    line = line + (i + ",");
+                }
+                Console.WriteLine();
+                //lines.Add("");
+                lines.Add(line);
+            }
+
+            using (StreamWriter op = new StreamWriter("districs_data_" + caseType.ToString().ToLower() + "_" + scenario.name + "_weeklyavg_" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
+            {
+                foreach (string line in lines)
+                {
+                    op.WriteLine(line);
+                }
+                op.Flush();
+            }
+
+        }
+    
+
+        private void WriteFiles(CaseType caseType, DistrictsScenario scenario, IDictionary<string, List<int>> dict)
+        {
+            List<string> lines = new List<string>();
             
             foreach (string key in dict.Keys)
             {
@@ -96,7 +154,7 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                 lines.Add(line);
             }
 
-            using (StreamWriter op = new StreamWriter("districs_data_" + caseType.ToString().ToLower() + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
+            using (StreamWriter op = new StreamWriter("districs_data_" + caseType.ToString().ToLower() + "_" + scenario.name + "_" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv"))
             {
                 foreach (string line in lines)
                 {
@@ -107,22 +165,8 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
 
         }
 
-        void WriteFiles()
-        {
-            WriteFiles(CaseType.Confirmed);
-            WriteFiles(CaseType.Fatality);
-        }
+        
 
-        void ComputeStatistics()
-        {
-            InitializeStats();
-            for (int i = 0; i < 11; i++)
-            {
-                dictFatality["Ahmedabad"].Add(0);
-                dictConfirmed["Ahmedabad"].Add(0);
-            }
-            ReadInStats();
-            WriteFiles();
-        }
+        
     }
 }

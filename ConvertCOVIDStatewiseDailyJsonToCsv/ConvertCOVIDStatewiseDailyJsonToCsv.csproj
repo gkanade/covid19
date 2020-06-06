@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="Constants.cs" />
     <Compile Include="Districts.cs" />
+    <Compile Include="DistrictsScenario.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimpleMovingAverage.cs" />

@@ -23,8 +23,10 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
         | SecurityProtocolType.Ssl3;
 
             Districts districts = new Districts();
-            districts.Scenario(Constants.AllIndiaTopDistricts, Constants.AllIndiaTopStates);
-            districts.Scenario(Constants.MHAllDistricts, new List<string> { "Maharashtra" });
+            DistrictsScenario allIndiaTop = new DistrictsScenario { name = "AllIndiaTop", listDistricts = Constants.AllIndiaTopDistricts, listStates = Constants.AllIndiaTopStates };
+            DistrictsScenario maharashtra = new DistrictsScenario { name = "Maharashtra", listDistricts = Constants.MHAllDistricts, listStates = new List<string> { "Maharashtra" } };
+            districts.Scenario(allIndiaTop);
+            districts.Scenario(maharashtra);
             States.ComputeStatesData();
         
         }
