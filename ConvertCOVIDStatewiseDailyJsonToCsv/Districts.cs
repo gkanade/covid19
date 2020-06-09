@@ -57,6 +57,16 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                     dictConfirmed["Ahmedabad"].Add(0);
                 }
             }
+
+            if (scenario.listDistricts.Contains("Raigad"))
+            {
+                for (int i = 0; i < 11; i++)
+                {
+                    dictFatality["Raigad"].Add(0);
+                    dictConfirmed["Raigad"].Add(0);
+                }
+            }
+
             foreach (string state in scenario.listStates)
             {
                 var entry = rawJson["districtsDaily"][state];
@@ -72,28 +82,30 @@ namespace ConvertCOVIDStatewiseDailyJsonToCsv
                         for (int i = 0; i < numDays; i++)
                         {
                             var e = entry[district][i];
+                            int entryDeceasedDistrictCurrent = int.Parse(e["deceased"].ToString());
+                            int entryConfirmedDistrictCurrent = int.Parse(e["confirmed"].ToString());
                             if (dictFatality[district].Count() == 0)
                             {
-                                dictSMADeaths[district].addData(int.Parse(e["deceased"].ToString()));
+                                dictSMADeaths[district].addData(entryDeceasedDistrictCurrent);
                             }
                             else
                             {
-                                dictSMADeaths[district].addData(int.Parse(e["deceased"].ToString()) - dictFatality[district].Last());
+                                dictSMADeaths[district].addData(entryDeceasedDistrictCurrent - dictFatality[district].Last());
                             }
                             dictWeeklyAvgNewDeaths[district].Add(dictSMADeaths[district].getMean());
-                            dictFatality[district].Add(int.Parse(e["deceased"].ToString()));
+                            dictFatality[district].Add(entryDeceasedDistrictCurrent);
 
                             if (dictConfirmed[district].Count() == 0)
                             {
-                                dictSMA[district].addData(int.Parse(e["confirmed"].ToString()));
+                                dictSMA[district].addData(entryConfirmedDistrictCurrent);
                             }
                             else
                             {
-                                dictSMA[district].addData(int.Parse(e["confirmed"].ToString()) - dictConfirmed[district].Last());
+                                dictSMA[district].addData(entryConfirmedDistrictCurrent - dictConfirmed[district].Last());
                             }
 
                             dictWeeklyAvgNew[district].Add(dictSMA[district].getMean());
-                            dictConfirmed[district].Add(int.Parse(e["confirmed"].ToString()));
+                            dictConfirmed[district].Add(entryConfirmedDistrictCurrent);
                             
                             
                         }
